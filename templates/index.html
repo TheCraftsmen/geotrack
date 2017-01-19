@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>super geo app</title>
+	<script src='https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.standalone.js'></script>
+	<link href='https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.css' rel='stylesheet' />
+ 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.2/dist/leaflet.css" />
+	<script src="https://unpkg.com/leaflet@1.0.2/dist/leaflet.js"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='jquery.js') }}"></script>
+	<style type="text/css">
+		#mapid { height: 600px; };
+	</style>	
+</head>
+<body>
+	<div id="menu">
+		<ul>
+			<li><div><input type="button" name="posicion" value="posicion" id="ps"></div></li>
+			<li><div><input type="button" name="rutas" value="ruta" id="rt"></div></li>
+		</ul>
+	</div>
+	<div id="mapid"></div>
+	<form id="posicion">
+		<input type="text" name="name">
+		<input type="submit" name="send" value="envir">
+	</form>
+
+	<script type="text/javascript">
+		$(document).ready(function(){
+			polyline = null;
+
+			$('#rt').click(function(){
+				polyline = null;
+			})
+			var mymap = L.map('mapid').setView([-34.6075, -58.38924], 13);
+ 
+			L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v10/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoidGhlY3JhZnRzbWVuIiwiYSI6ImNpb3NxNnA5eTAwOXV1bG01bHBwaGd5bGMifQ._dOC1WLRxgNCALYjGrkfSg', {
+   		 		attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    			maxZoom: 18,
+				}).addTo(mymap);
+			/*function onMapClick(e) {
+    			alert("You clicked the map at " + e.latlng);
+			}
+
+			mymap.on('click', onMapClick);*/
+			$.ajax({
+				url:'/geotrack/',
+				type:'GET',	
+				success: function(response){
+					console.log('exito');
+					var a;
+					for(a=0; a < response.data.length; a++)
+					{ 
+						L.marker([response.data[a].location.coordinates[0], 
+							      response.data[a].location.coordinates[1]]).addTo(mymap);
+					}
+				}
+			})
+			
+			//===========
+			var marker = L.marker([-34.61386, -58.47362]).addTo(mymap);
+			var popup = L.popup();
+			function onMapClick(e) {
+			    //popup
+			    //    .setLatLng(e.latlng)
+			    //    .setContent("You clicked the map at " + e.latlng.toString())
+			    //    .openOn(mymap);
+			    /*
+			    navigator.geolocation.getCurrentPosition(function(position) {
+						console.log('entra');
+						var a = position.coords.latitude;
+						var b = position.coords.longitude;
+						
+						$.ajax({
+							url: '/geotrack/',
+							type: 'POST',
+							data: $('#posicion').serialize() + '&a=' + e.latlng.lat.toString() + '&b=' + e.latlng.lng.toString(),
+							success: function(){
+								console.log('exito');
+							},
+							error: function(){
+								console.log('uh la puta madre');
+							}  
+						});
+				});
+				*/
+				if(polyline){
+					polyline.addLatLng(e.latlng);
+				}
+				else
+				{
+					var latlnglist = [];
+					latlnglist.push(e.latlng);
+					polyline = L.polyline(latlnglist, {color: 'red'}).addTo(mymap);
+				}
+				//polyline.addLatLng(e.latlng);
+				//latlnglist = polyline.getLatLngs()
+			}
+
+			mymap.on('click', onMapClick);
+
+
+			$('#posicion').submit(function(event){
+				console.log('entra2s');
+				navigator.geolocation.getCurrentPosition(function(position) {
+						console.log('entra');
+						var a = position.coords.latitude;
+						var b = position.coords.longitude;
+						$.ajax({
+							url: '/geotrack/',
+							type: 'POST',
+							data: $('#posicion').serialize() + '&a=' + a + '&b=' + b,
+							success: function(){
+								console.log('exito');
+							},
+							error: function(){
+								console.log('uh la puta madre');
+							}  
+						});
+				});
+
+				event.preventDefault();
+				return false;
+			});
+		});
+	</script>
+</body>
+</html>
